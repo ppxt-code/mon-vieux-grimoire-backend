@@ -1,13 +1,19 @@
 const Book = require('../models/Book');
 const fs = require('fs');
+const sharp = require("sharp");
 
-exports.createBook = (req, res, next) => {
+
+exports.createBook = async (req, res, next) => {
+    const { buffer, originalname } = req.file;
+    const ref = `${originalname}-${Date.now()}.webp`;
+    await sharp(buffer).webp({ quality: 20 }).toFile("./images/" + ref);
+
     const BookObject = JSON.parse(req.body.book);
     const book = new Book({
         userId: req.auth.userId,
         title: BookObject.title,
         author: BookObject.author,
-        imageUrl: `${req.protocol}://${req.get('host')}/images/${req.file.filename}`,
+        imageUrl: `${req.protocol}://${req.get('host')}/images/${ref}`,
         year: BookObject.year,
         genre: BookObject.genre,
         ratings:[],
