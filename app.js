@@ -1,6 +1,8 @@
 const express = require('express');
 const mongoose = require('mongoose');
+const path = require('path');
 const userRoutes = require('./routes/User');
+const bookRoutes = require('./routes/Book');
 
 const app = express();
 // pour la base de données
@@ -16,15 +18,20 @@ app.use((req, res, next) => {
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
   next();
 });
+
 // pour les requetes qui ont un content type json
 app.use(express.json());
 
+// pour mapper le repertoire images, modification des routes :
+app.use('/images', express.static(path.join(__dirname,'images')));
+
+
 app.use((req,res, next)=>{
     console.log(`requete recue : ${req.url}`);
-    //res.json({message:'requete recue'});
     next();
 });
 
 app.use('/api/auth', userRoutes);
+app.use('/api/books', bookRoutes);
 
 module.exports = app;
