@@ -2,14 +2,18 @@ const Book = require('../models/Book');
 const fs = require('fs');
 const sharp = require("sharp");
 
-
-exports.createBook = async (req, res, next) => {
+// saving new file in format webp in images/
+const createBookRef = async (req) => {
     const { buffer, originalname } = req.file;
     const ref = `${originalname}-${Date.now()}.webp`;
     await sharp(buffer).webp({ quality: 20 }).toFile("./images/" + ref);
-
+    return ref;
+};
+// create new book object
+const createBookObject = async (req) => {
+    const ref = await createBookRef(req);
     const BookObject = JSON.parse(req.body.book);
-    const book = new Book({
+    return {
         userId: req.auth.userId,
         title: BookObject.title,
         author: BookObject.author,
@@ -18,13 +22,65 @@ exports.createBook = async (req, res, next) => {
         genre: BookObject.genre,
         ratings:[],
         averageRating: 0
-    });
+    };
+};
+// update book object
+const updateBookObject = async (req) => {
+    const BookObject = (req.file)? JSON.parse(req.body.book) : req.body;
+    let imageUrl = BookObject.imageUrl ;
+    if (req.file) {
+        const ref = await createBookRef(req);
+        imageUrl = `${req.protocol}://${req.get('host')}/images/${ref}`;
+        // BookObject.imageUrl is undefined here
+    }
+    return {
+        userId: req.auth.userId,
+        title: BookObject.title,
+        author: BookObject.author,
+        imageUrl: imageUrl,
+        year: BookObject.year,
+        genre: BookObject.genre,
+        ratings: BookObject.ratings,
+        averageRating: BookObject.averageRating
+    };
+};
+
+exports.createBook = async (req, res, next) => {
+    const bookObject = await createBookObject(req);
+    const book = new Book(bookObject);
     book.save()
-    .then(()=>{ console.log('save: book '+BookObject.title+' saved');
+    .then(()=>{ console.log('save: book '+bookObject.title+' saved');
                 res.status(201).json({message: 'object saved'});})
     .catch(error=>{ console.log('save: error 400 '+error);
                     res.status(400).json({error});
     });
+};
+
+exports.updateBook = async (req, res, next) => {
+    const book = await Book.findOne({_id: req.params.id})
+    if (!book) {
+        console.log('updateBook error 400 :could not find book');
+        res.status(400).json({message:'could not find book'});
+    } else {
+        if (book.userId != req.auth.userId){console.log('updateBook error 401 : update non authorized');
+                                            res.status(401).json({message: 'update non authorized'});}
+        else {
+            const bookObject = await updateBookObject(req); 
+
+            // removing old file in images/
+            const filename = book.imageUrl? book.imageUrl.split('/images/')[1]: '';
+            fs.unlink(`images/${filename}`, err =>{
+                if (err) console.log('Error unlink file:'+filename, err);
+                else console.log(`file images/${filename} deleted`);
+            })
+
+            Book.updateOne({_id: req.params.id},{...bookObject, _id: req.params.id})
+            .then(()=>{console.log('updateBook : 200');
+                       res.status(200).json({message: 'object updated'});})
+            .catch(error=>{ console.log('updateBook error 401 : update failed '+error);
+                            res.status(401).json({error});});
+        }
+    }
 };
 
 exports.getBooks = (req, res, next) => {
@@ -50,12 +106,15 @@ exports.deleteBook = (req, res, next) => {
                     res.status(401).json({Message:'delete non authorized'});
                  } else {
                     const filename = book.imageUrl.split('/images/')[1];
-                    fs.unlink(`images/${filename}`,
-                        ()=>{Book.deleteOne({_id: req.params.id})
-                             .then(()=>{console.log('deleteBook: 200');
+                    fs.unlink(`images/${filename}`, (err) => {
+                        if (err) {console.log('deleteBook unlink:error 500 '+err);
+                                  res.status(500).json({err});}
+                        else {Book.deleteOne({_id: req.params.id})
+                              .then(()=>{console.log('deleteBook: 200');
                                         res.status(200).json({message: 'object deleted'});})
-                             .catch(error=>{console.log('deleteBook unlink:error 500 '+error);
-                                            res.status(500).json({error});})} );
+                              .catch(error=>{console.log('deleteBook deleteOne:error 500 '+error);
+                                            res.status(500).json({error});})}                             
+                    });
                   }
                  })
     .catch(error=>{ console.log('findOne unlink:error 500 '+error);
