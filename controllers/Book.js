@@ -74,7 +74,8 @@ exports.updateBook = async (req, res, next) => {
                 else console.log(`file images/${filename} deleted`);
             })
 
-            Book.updateOne({_id: req.params.id},{...bookObject, _id: req.params.id})
+            Book.updateOne( {_id: req.params.id},{...bookObject, _id: req.params.id},
+                            { runValidators: true })
             .then(()=>{console.log('updateBook : 200');
                        res.status(200).json({message: 'object updated'});})
             .catch(error=>{ console.log('updateBook error 401 : update failed '+error);
@@ -116,7 +117,43 @@ exports.deleteBook = (req, res, next) => {
                                             res.status(500).json({error});})}                             
                     });
                   }
-                 })
-    .catch(error=>{ console.log('findOne unlink:error 500 '+error);
+    })
+    .catch(error=>{ console.log('deleteBook findOne:error 500 '+error);
                     res.status(500).json({error});});
+};
+
+exports.ratingBook = (req, res, next) => {
+    if (req.body.userId != req.auth.userId) {
+        console.log('ratingBook error 401 rating non authorized');
+        return res.status(401).json({message:'rating non authorized'});
+    } 
+    Book.findOne({_id: req.params.id})
+    .then(book => {
+        let ratings = book.ratings || [];
+        let averageRating = 0;
+        if (ratings.length == 0) {
+            ratings.push({userId: req.auth.userId, grade: req.body.rating});
+            averageRating = req.body.rating;
+        } else {
+            const found = ratings.find(elt => elt.userId===req.auth.userId);
+            if (found) {
+                console.log('ratingBook error 400: user already gave a rating');
+                return res.status(400).json({message: 'user already gave a rating'});
+            } 
+            ratings.push({ userId: req.auth.userId, grade: req.body.rating });
+            avgRatingDble = ratings.reduce((acc,elt)=>acc+elt.grade,0)/ratings.length;
+            averageRating = Math.round(avgRatingDble);
+        }
+        book.averageRating = averageRating;
+        book.ratings = ratings;
+        Book.updateOne( {_id: req.params.id},{ratings: ratings , averageRating: averageRating},
+                        { runValidators: true }) // validating Mongoose schema
+        .then(() =>{console.log('ratingBook : 200');
+                    res.status(200).json(book);})
+        .catch(error=>{ console.log('ratingBook error 401 : update rating failed '+error);
+                        res.status(401).json({error});});
+    })
+    .catch(error=>{ console.log('ratingBook findOne:error 500 '+error);
+                    res.status(500).json({error});});
+    
 };
