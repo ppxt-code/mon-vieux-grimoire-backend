@@ -1,8 +1,32 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const validator = require('validator');
 const User = require('../models/User');
 
+function invalidEmail(req, res) {
+    if (!validator.isEmail(req.body.email)) {
+        console.log('signup: error 422 :invalid email '+req.body.email);
+        res.status(422).json({message: 'invalid email'});
+        return true;
+    }
+    return false;
+}
+function invalidPassword(req, res) {
+    // Interdire certains caractères spéciaux souvent
+    // utilisés dans les attaques CSS, tels que { } ; : < > ' " / \ etc.
+    const passwordRegex = /^[a-zA-Z0-9!@#$%^&*()\-_+=.]*$/;
+    if (!passwordRegex.test(req.body.password)) {
+        console.log('signup: error 422 :invalid password');
+        res.status(422).json({message: 'invalid password'});
+        return true;
+    }
+    return false;
+}
 exports.signup = (req, res, next) => {
+    // verification de l'email
+    if (invalidEmail(req, res)) return;
+    // verification du mot de passe
+    if (invalidPassword(req, res)) return;
     // hash du mot de passe
     bcrypt.hash(req.body.password, 10)
     .then(hash =>{
@@ -19,6 +43,11 @@ exports.signup = (req, res, next) => {
 };
 
 exports.login = (req, res, next) => {
+    // verification de l'email
+    if (invalidEmail(req, res)) return;
+    // verification du mot de passe
+    if (invalidPassword(req, res)) return;
+    
     User.findOne({email: req.body.email})
     .then(user => { 
         if (!user){ console.log('login: nouser error 401='+error);
