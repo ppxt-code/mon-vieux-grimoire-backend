@@ -62,8 +62,8 @@ exports.updateBook = async (req, res, next) => {
         console.log('updateBook error 400 :could not find book');
         res.status(400).json({message:'could not find book'});
     } else {
-        if (book.userId != req.auth.userId){console.log('updateBook error 401 : update non authorized');
-                                            res.status(401).json({message: 'update non authorized'});}
+        if (book.userId != req.auth.userId){console.log('updateBook error 403 : update non authorized');
+                                            res.status(403).json({message: 'unauthorized request'});}
         else {
             const bookObject = await updateBookObject(req); 
 
@@ -124,8 +124,8 @@ exports.deleteBook = (req, res, next) => {
 
 exports.ratingBook = (req, res, next) => {
     if (req.body.userId != req.auth.userId) {
-        console.log('ratingBook error 401 rating non authorized');
-        return res.status(401).json({message:'rating non authorized'});
+        console.log('ratingBook error 403 rating non authorized');
+        return res.status(403).json({message: 'unauthorized request'});
     } 
     Book.findOne({_id: req.params.id})
     .then(book => {
