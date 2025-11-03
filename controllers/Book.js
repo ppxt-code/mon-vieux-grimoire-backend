@@ -67,13 +67,14 @@ exports.updateBook = async (req, res, next) => {
         else {
             const bookObject = await updateBookObject(req); 
 
-            // removing old file in images/
-            const filename = book.imageUrl? book.imageUrl.split('/images/')[1]: '';
-            fs.unlink(`images/${filename}`, err =>{
-                if (err) console.log('Error unlink file:'+filename, err);
-                else console.log(`file images/${filename} deleted`);
-            })
-
+            if (req.file) {
+                // removing old file in images/
+                const filename = book.imageUrl? book.imageUrl.split('/images/')[1]: '';
+                fs.unlink(`images/${filename}`, err =>{
+                 if (err) console.log('Error unlink file:'+filename, err);
+                    else console.log(`file images/${filename} deleted`);
+                })
+            }
             Book.updateOne( {_id: req.params.id},{...bookObject, _id: req.params.id},
                             { runValidators: true })
             .then(()=>{console.log('updateBook : 200');
