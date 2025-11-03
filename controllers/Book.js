@@ -1,6 +1,7 @@
 const Book = require('../models/Book');
 const fs = require('fs');
 const sharp = require("sharp");
+const { invalidText } = require('../utilities/validateText.js');
 
 // saving new file in format webp in images/
 const createBookRef = async (req) => {
@@ -13,6 +14,12 @@ const createBookRef = async (req) => {
 const createBookObject = async (req) => {
     const ref = await createBookRef(req);
     const BookObject = JSON.parse(req.body.book);
+
+    if (invalidText(BookObject.title) || invalidText(BookObject.author) 
+        || invalidText(BookObject.genre)) {
+        return null;
+    }
+
     return {
         userId: req.auth.userId,
         title: BookObject.title,
@@ -27,6 +34,12 @@ const createBookObject = async (req) => {
 // update book object
 const updateBookObject = async (req) => {
     const BookObject = (req.file)? JSON.parse(req.body.book) : req.body;
+
+    if (invalidText(BookObject.title) || invalidText(BookObject.author) 
+        || invalidText(BookObject.genre)) {
+        return null;
+    }
+
     let imageUrl = BookObject.imageUrl ;
     if (req.file) {
         const ref = await createBookRef(req);
@@ -47,6 +60,11 @@ const updateBookObject = async (req) => {
 
 exports.createBook = async (req, res, next) => {
     const bookObject = await createBookObject(req);
+    if (bookObject == null) {
+        console.log('createBook: error 422 :invalid input data');
+        res.status(422).json({message: 'invalid input data'});
+        return;
+    }
     const book = new Book(bookObject);
     book.save()
     .then(()=>{ console.log('save: book '+bookObject.title+' saved');
@@ -66,12 +84,16 @@ exports.updateBook = async (req, res, next) => {
                                             res.status(403).json({message: 'unauthorized request'});}
         else {
             const bookObject = await updateBookObject(req); 
-
+            if (bookObject == null) {
+                console.log('updateBook: error 422 :invalid input data');
+                res.status(422).json({message: 'invalid input data'});
+                return;
+            }
             if (req.file) {
                 // removing old file in images/
                 const filename = book.imageUrl? book.imageUrl.split('/images/')[1]: '';
                 fs.unlink(`images/${filename}`, err =>{
-                 if (err) console.log('Error unlink file:'+filename, err);
+                    if (err) console.log('Error unlink file:'+filename, err);
                     else console.log(`file images/${filename} deleted`);
                 })
             }

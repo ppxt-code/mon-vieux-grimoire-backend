@@ -2,6 +2,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const validator = require('validator');
 const User = require('../models/User');
+const { invalidText } = require('../utilities/validateText.js');
 
 function invalidEmail(req, res) {
     if (!validator.isEmail(req.body.email)) {
@@ -12,10 +13,7 @@ function invalidEmail(req, res) {
     return false;
 }
 function invalidPassword(req, res) {
-    // Interdire certains caractères spéciaux souvent
-    // utilisés dans les attaques CSS, tels que { } ; : < > ' " / \ etc.
-    const passwordRegex = /^[a-zA-Z0-9!@#$%^&*()\-_+=.]*$/;
-    if (!passwordRegex.test(req.body.password)) {
+    if (invalidText(req.body.password)) {
         console.log('signup: error 422 :invalid password');
         res.status(422).json({message: 'invalid password'});
         return true;
