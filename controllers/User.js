@@ -2,8 +2,6 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
-const JWT_SECRET = 'a3f1e5b7c8d9e0123456789abcdef0123456789abcdef0123456789abcdef0123';
-
 exports.signup = (req, res, next) => {
     // hash du mot de passe
     bcrypt.hash(req.body.password, 10)
@@ -33,7 +31,7 @@ exports.login = (req, res, next) => {
             console.log('login: 200');
             res.status(200).json({
                 userId: user._id, 
-                token: jwt.sign({userId: user._id}, JWT_SECRET, {expiresIn:'24h'})
+                token: jwt.sign({userId: user._id}, process.env.JWT_SECRET, {expiresIn:'24h'})
             }); })
         .catch(error=>{ console.log('login: bcrypt error 500='+error);
                         res.status(500).json({error});});

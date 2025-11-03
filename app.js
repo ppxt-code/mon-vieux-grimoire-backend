@@ -4,6 +4,9 @@ const path = require('path');
 const userRoutes = require('./routes/User');
 const bookRoutes = require('./routes/Book');
 
+// pour JWT_SECRET :
+require('dotenv').config();
+
 const app = express();
 // pour la base de données
 mongoose.connect('mongodb+srv://ppxt:ppxtpassword@ppxt-code.04sxpwl.mongodb.net/?retryWrites=true&w=majority&appName=ppxt-code',
