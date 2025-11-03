@@ -155,5 +155,15 @@ exports.ratingBook = (req, res, next) => {
     })
     .catch(error=>{ console.log('ratingBook findOne:error 500 '+error);
                     res.status(500).json({error});});
-    
+};
+
+exports.bestrating = async (req, res, next) => {
+    try {
+        const top3Books = await Book.find({}).sort({averageRating: -1}).limit(3);
+        console.log('bestrating: 200, found '+top3Books.length+' books');
+        res.status(200).json(top3Books);
+    } catch (error) {
+        console.log('bestrating: error 404 not found '+error);
+        res.status(404).json({message:'not found '+error});   
+    }
 };
