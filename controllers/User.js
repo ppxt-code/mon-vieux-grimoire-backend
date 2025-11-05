@@ -2,9 +2,9 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const validator = require('validator');
 const User = require('../models/User');
-const { invalidText } = require('../utilities/validateText.js');
+const { isInvalidText } = require('../utilities/validateText.js');
 
-function invalidEmail(req, res) {
+function isInvalidEmail(req, res) {
     if (!validator.isEmail(req.body.email)) {
         console.log('signup: error 422 :invalid email '+req.body.email);
         res.status(422).json({message: 'invalid email'});
@@ -12,8 +12,8 @@ function invalidEmail(req, res) {
     }
     return false;
 }
-function invalidPassword(req, res) {
-    if (invalidText(req.body.password)) {
+function isInvalidPassword(req, res) {
+    if (isInvalidText(req.body.password)) {
         console.log('signup: error 422 :invalid password');
         res.status(422).json({message: 'invalid password'});
         return true;
@@ -22,9 +22,9 @@ function invalidPassword(req, res) {
 }
 exports.signup = (req, res, next) => {
     // verification de l'email
-    if (invalidEmail(req, res)) return;
+    if (isInvalidEmail(req, res)) return;
     // verification du mot de passe
-    if (invalidPassword(req, res)) return;
+    if (isInvalidPassword(req, res)) return;
     // hash du mot de passe
     bcrypt.hash(req.body.password, 10)
     .then(hash =>{
@@ -36,15 +36,15 @@ exports.signup = (req, res, next) => {
         .catch(error=>{ console.log('signup: error 400='+error);
                         res.status(400).json({error});});
     })
-    .catch(error=>{ console.log('signup: error 500='+error);
-                    res.status(500).json({error});});
+    .catch(error=>{ console.log('signup: error 422='+error);
+                    res.status(422).json({error});});
 };
 
 exports.login = (req, res, next) => {
     // verification de l'email
-    if (invalidEmail(req, res)) return;
+    if (isInvalidEmail(req, res)) return;
     // verification du mot de passe
-    if (invalidPassword(req, res)) return;
+    if (isInvalidPassword(req, res)) return;
     
     User.findOne({email: req.body.email})
     .then(user => { 
@@ -60,9 +60,9 @@ exports.login = (req, res, next) => {
                 userId: user._id, 
                 token: jwt.sign({userId: user._id}, process.env.JWT_SECRET, {expiresIn:'24h'})
             }); })
-        .catch(error=>{ console.log('login: bcrypt error 500='+error);
-                        res.status(500).json({error});});
+        .catch(error=>{ console.log('login: bcrypt error 422='+error);
+                        res.status(422).json({error});});
     })
-    .catch(error=>{ console.log('login: findOne error 500='+error);
-                    res.status(500).json({error});});
+    .catch(error=>{ console.log('login: findOne error 400='+error);
+                    res.status(400).json({error});});
 };

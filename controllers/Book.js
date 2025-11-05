@@ -1,8 +1,28 @@
 const Book = require('../models/Book');
 const fs = require('fs');
 const sharp = require("sharp");
-const { invalidText } = require('../utilities/validateText.js');
+const { isInvalidText } = require('../utilities/validateText.js');
 
+const processUnlinkError = (str, err, res) => {
+       switch (err.code) {
+      case 'ENOENT':
+        console.log(str+' error 404 file not found');
+        res.status(404).json({message:'file not found'});
+        break;
+      case 'EACCES':
+      case 'EPERM':
+        console.log(str+' error 403 unauthorized');
+        res.status(403).json({message:'unauthorized'});
+        break;
+      case 'EBUSY':
+        console.log(str+' error 423 file locked');
+        res.status(423).json({message:'file locked'});
+        break;
+      default:
+        console.log(str+' error 500 server');
+        res.status(500).json({message:'server error'});
+    } 
+}
 // saving new file in format webp in images/
 const createBookRef = async (req) => {
     const { buffer, originalname } = req.file;
@@ -15,8 +35,8 @@ const createBookObject = async (req) => {
     const ref = await createBookRef(req);
     const BookObject = JSON.parse(req.body.book);
 
-    if (invalidText(BookObject.title) || invalidText(BookObject.author) 
-        || invalidText(BookObject.genre)) {
+    if (isInvalidText(BookObject.title) || isInvalidText(BookObject.author) 
+        || isInvalidText(BookObject.genre)) {
         return null;
     }
 
@@ -35,8 +55,8 @@ const createBookObject = async (req) => {
 const updateBookObject = async (req) => {
     const BookObject = (req.file)? JSON.parse(req.body.book) : req.body;
 
-    if (invalidText(BookObject.title) || invalidText(BookObject.author) 
-        || invalidText(BookObject.genre)) {
+    if (isInvalidText(BookObject.title) || isInvalidText(BookObject.author) 
+        || isInvalidText(BookObject.genre)) {
         return null;
     }
 
@@ -93,7 +113,7 @@ exports.updateBook = async (req, res, next) => {
                 // removing old file in images/
                 const filename = book.imageUrl? book.imageUrl.split('/images/')[1]: '';
                 fs.unlink(`images/${filename}`, err =>{
-                    if (err) console.log('Error unlink file:'+filename, err);
+                    if (err) processUnlinkError("updateBook", err, res);
                     else console.log(`file images/${filename} deleted`);
                 })
             }
@@ -131,18 +151,17 @@ exports.deleteBook = (req, res, next) => {
                  } else {
                     const filename = book.imageUrl.split('/images/')[1];
                     fs.unlink(`images/${filename}`, (err) => {
-                        if (err) {console.log('deleteBook unlink:error 500 '+err);
-                                  res.status(500).json({err});}
+                        if (err)  processUnlinkError("deleteBook", err, res);
                         else {Book.deleteOne({_id: req.params.id})
                               .then(()=>{console.log('deleteBook: 200');
                                         res.status(200).json({message: 'object deleted'});})
-                              .catch(error=>{console.log('deleteBook deleteOne:error 500 '+error);
-                                            res.status(500).json({error});})}                             
+                              .catch(error=>{console.log('deleteBook deleteOne:error 400 '+error);
+                                            res.status(400).json({error});})}                             
                     });
                   }
     })
-    .catch(error=>{ console.log('deleteBook findOne:error 500 '+error);
-                    res.status(500).json({error});});
+    .catch(error=>{ console.log('deleteBook findOne:error 400 '+error);
+                    res.status(400).json({error});});
 };
 
 exports.ratingBook = (req, res, next) => {
@@ -176,8 +195,8 @@ exports.ratingBook = (req, res, next) => {
         .catch(error=>{ console.log('ratingBook error 401 : update rating failed '+error);
                         res.status(401).json({error});});
     })
-    .catch(error=>{ console.log('ratingBook findOne:error 500 '+error);
-                    res.status(500).json({error});});
+    .catch(error=>{ console.log('ratingBook findOne:error 400 '+error);
+                    res.status(400).json({error});});
 };
 
 exports.bestrating = async (req, res, next) => {
