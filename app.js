@@ -25,15 +25,17 @@ app.use((req, res, next) => {
 // pour les requetes qui ont un content type json
 app.use(express.json());
 
-// pour mapper le repertoire images, modification des routes :
+// permet au server express de servir les fichiers sous /images pour
+// les requetes faites sur URL avec le prefixe /images
 app.use('/images', express.static(path.join(__dirname,'images')));
 
-
+// pour les traces
 app.use((req,res, next)=>{
     console.log(`requete recue : ${req.url}`);
     next();
 });
 
+// routage : redirection ver les routeurs userRoutes, bookRoutes
 app.use('/api/auth', userRoutes);
 app.use('/api/books', bookRoutes);
 
