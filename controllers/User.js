@@ -48,11 +48,11 @@ exports.login = (req, res, next) => {
     
     User.findOne({email: req.body.email})
     .then(user => { 
-        if (!user){ console.log('login: nouser error 401='+error);
+        if (!user){ console.log('login: nouser error 401');
                     return res.status(401).json({message: 'pair login/password invalid'});}
         bcrypt.compare(req.body.password, user.password)
         .then(valid => {
-            if (!valid){console.log('login: notvalid error 401='+error);
+            if (!valid){console.log('login: notvalid error 401');
                         return res.status(401).json({message: 'pair login/password invalid'});}
             // la reponse HTTP contient userId et le token JWT
             console.log('login: 200');
@@ -60,8 +60,8 @@ exports.login = (req, res, next) => {
                 userId: user._id, 
                 token: jwt.sign({userId: user._id}, process.env.JWT_SECRET, {expiresIn:'24h'})
             }); })
-        .catch(error=>{ console.log('login: bcrypt error 422='+error);
-                        res.status(422).json({error});});
+        .catch(error=>{ console.log('login: bcrypt error 401='+error);
+                        res.status(401).json({error});});
     })
     .catch(error=>{ console.log('login: findOne error 400='+error);
                     res.status(400).json({error});});

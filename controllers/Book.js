@@ -146,7 +146,7 @@ exports.getBook = (req, res, next) => {
 exports.deleteBook = (req, res, next) => {
     Book.findOne({_id: req.params.id})
     .then(book=>{if (book.userId != req.auth.userId) {
-                    console.log('deleteBook :error 401 '+error);
+                    console.log('deleteBook :error 401 ');
                     res.status(401).json({Message:'delete non authorized'});
                  } else {
                     const filename = book.imageUrl.split('/images/')[1];
@@ -206,6 +206,6 @@ exports.bestrating = async (req, res, next) => {
         res.status(200).json(top3Books);
     } catch (error) {
         console.log('bestrating: error 404 not found '+error);
-        res.status(404).json({message:'not found '+error});   
+        res.status(404).json({error});   
     }
 };
